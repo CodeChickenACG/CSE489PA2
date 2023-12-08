@@ -201,21 +201,13 @@ void B_init()
 //First is the checksum function
 int checksum(struct pkt packet)
 {
-    //define the data with size of 20
-    char data[20];
-    //copy the payload to the data
-    strncpy(data, packet.payload, 20);
-    //declare a variable to store the checksum
     int sum = 0;
-    //then we need to add the sequence number and acknum to the checksum
     sum += packet.seqnum;
     sum += packet.acknum;
-    //then we need to add the payload to the checksum
-    for (int i = 0; i < 20; i++)
+    for(int i = 0; i < 20; i++)
     {
-        sum += data[i];
+        sum += packet.payload[i];
     }
-    //then we need to return the checksum
     return sum;
 }
 

@@ -3,7 +3,7 @@
 /* ******************************************************************
  ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: VERSION 1.1  J.F.Kurose
 
-   This code should be used for PA2, unidirectional data transfer 
+   This code should be used for PA2, unidirectional data transfer
    protocols (from A to B). Network properties:
    - one way network delay averages five time units (longer if there
      are other messages in the channel for GBN), but can be larger
@@ -32,7 +32,7 @@ int A_Buff_next = 0;
 //sequence number for B
 int B_seqnum;
 
-//declar the function for calculating the checksum
+//declare checksum
 int checksum(struct pkt packet);
 
 /* called from layer 5, passed the data to be sent to other side */
@@ -40,8 +40,8 @@ void A_output(struct msg message)
 {
     //first of all we need to set the sequence number of next packet in the buffer to the current sequence number
     A_Buff[A_Buff_next].seqnum = A_seqnum;
-    //then we need to set the acknum of next packet in the buffer to the current sequence number, why?
-    //because the acknum is the sequence number of the packet that B is expecting to receive
+    
+    //then we need to set the acknum of next packet in the buffer to the current sequence number
     A_Buff[A_Buff_next].acknum = A_seqnum;
 
     //then we need to copy the data from the message to the payload of next packet in the buffer
@@ -51,22 +51,32 @@ void A_output(struct msg message)
     //because the checksum is the sum of the sequence number, acknum and payload
     A_Buff[A_Buff_next].checksum = checksum(A_Buff[A_Buff_next]);
 
-    //then we need to send the packet to layer 3
-    tolayer3(0, A_Buff[A_Buff_next]);
 
-    //then we need to start the timer with RTT = 20.0(the same as the simulator)
-    starttimer(0, 20.0);
-
-    //then we need to set the flag to 0 showing it is not ready to send
-    A_flag = 0;
-
-    //then we need to set the last packet sent by A to the next packet in the buffer
-    //because the last packet sent by A is the next packet in the buffer
-    last_pkt = A_Buff[A_Buff_next];
-
-    //then we need to increase the next packet to be sent by 1, and wrap around the buffer for next packet
-    //because the buffer is a circular buffer, so we need to wrap around the buffer when we reach the end of the buffer
+    //increase the buffer
     A_Buff_next = (A_Buff_next + 1) % 1000;
+    if (A_flag == 1){
+        //then we need to set the flag to 0 showing it is not ready to send
+        A_flag = 0;
+        //then we need to set the last packet sent by A to the next packet in the buffer
+        //because the last packet sent by A is the next packet in the buffer
+        last_pkt = A_Buff[A_seqnum];
+
+        //if so, we need to send the packet to layer 3
+        tolayer3(0, last_pkt);
+
+        //then we need to start the timer with RTT = 20.0(the same as the simulator)
+        starttimer(0, 20.0);
+    }
+}
+
+/* called when A's timer goes off */
+void A_timerinterrupt()
+{
+    //When the timer goes off, it means the packet is lost, so we need to resend the packet
+    //restart the timer with RTT = 20.0(the same as the simulator)
+    starttimer(0, 20.0);
+    //resend the last packet, as the timer expires, the last packet is lost, and ACK is not received
+    tolayer3(0, last_pkt);
 }
 
 /* called from layer 3, when a packet arrives for layer 4 */
@@ -80,25 +90,15 @@ void A_input(struct pkt packet)
         //then set the flag to 1 showing it is ready to send
         A_flag = 1;
         //then increase the sequence number by 1, and wrap around the sequence number for next packet
-        A_seqnum = (A_seqnum + 1) % 2;
+        A_seqnum = (A_seqnum + 1) % 1000;
     }
-    //otherwise it means the acknum is not the same as the sequence number of current A
+        //otherwise it means the acknum is not the same as the sequence number of current A
     else
     {
         //so we basically restart the timer and resend the last packet
         //which can be done by calling the A_timerinterrupt() function
         A_timerinterrupt();
     }
-}
-
-/* called when A's timer goes off */
-void A_timerinterrupt()
-{
-    //When the timer goes off, it means the packet is lost, so we need to resend the packet
-    //restart the timer with RTT = 20.0(the same as the simulator)
-    starttimer(0, 20.0);
-    //resend the last packet, as the timer expires, the last packet is lost, and ACK is not received
-    tolayer3(0, last_pkt);
 }
 
 /* the following routine will be called once (only) before any other */
@@ -130,7 +130,7 @@ void B_input(struct pkt packet)
             //then increase the sequence number by 1, and wrap around the sequence number for next packet
             B_seqnum = (B_seqnum + 1) % 1000;
         }
-        //otherwise it means the sequence number is not the same as the sequence number of B
+            //otherwise it means the sequence number is not the same as the sequence number of B
         else
         {
             //so we basically send the ack for the last packet received

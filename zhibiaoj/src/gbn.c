@@ -217,11 +217,11 @@ struct pkt create_packet(struct msg message, int seqnum)
     //declare a packet use malloc struct pointer
     struct pkt *packet = (struct pkt *)malloc(sizeof(struct pkt));
     //set the acknum to -1
-    (*packet).acknum = seqnum;
+    (*packet).acknum = -1;
     //set the sequence number to the seqnum
     (*packet).seqnum = seqnum;
     //copy the payload to the packet
-    strncpy(packet->payload, message.data, 20);
+    strcpy((*packet).payload, message.data);
     //set the checksum to the checksum of the packet
     (*packet).checksum = checksum((*packet));
     //return the packet
